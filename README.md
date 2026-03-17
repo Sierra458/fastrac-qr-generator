@@ -1,0 +1,1 @@
+# fastrac-qr-generator
