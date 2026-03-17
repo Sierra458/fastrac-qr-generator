@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fastrac IT Asset QR Generator</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%23E87722' width='100' height='100' rx='20'/><text x='50' y='72' font-size='65' font-weight='900' fill='white' text-anchor='middle' font-family='Arial'>F</text></svg>">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+<style>
+  :root {
+    --orange: #E87722;
+    --orange-light: #f59542;
+    --dark: #1a1a2e;
+    --bg1: #0f0f1a;
+    --bg2: #1a1a2e;
+    --bg3: #16213e;
+    --text: #e8e8f0;
+    --muted: #8888a8;
+    --muted2: #666688;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    min-height: 100vh;
+    background: linear-gradient(135deg, var(--bg1), var(--bg2), var(--bg3));
+    color: var(--text);
+    font-family: "DM Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+  }
+  .header {
+    background: linear-gradient(90deg, var(--orange), var(--orange-light));
+    padding: 20px 28px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    box-shadow: 0 4px 20px rgba(232,119,34,0.3);
+  }
+  .header-logo {
+    width: 40px; height: 40px; border-radius: 6px;
+    background: #fff; padding: 5px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .header-logo svg { height: 30px; width: auto; }
+  .header h1 { font-size: 22px; font-weight: 800; color: #fff; letter-spacing: -0.5px; }
+  .header p { font-size: 12px; color: rgba(255,255,255,0.85); margin-top: 2px; }
+  .container { padding: 24px 28px; max-width: 900px; margin: 0 auto; }
+  .label-text { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); display: block; margin-bottom: 6px; }
+  .input {
+    width: 100%; padding: 10px 14px;
+    background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 8px; color: var(--text); font-size: 14px; outline: none;
+  }
+  .input:focus { border-color: rgba(232,119,34,0.4); }
+  .input-asset {
+    color: var(--orange); font-size: 15px; font-weight: 700;
+    font-family: "JetBrains Mono", "Fira Code", "Consolas", monospace;
+  }
+  .hint { font-size: 11px; color: var(--muted2); margin-top: 4px; }
+  .tabs { display: flex; margin-bottom: 20px; border-radius: 10px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); }
+  .tab {
+    flex: 1; padding: 10px 16px; border: none; font-size: 13px; font-weight: 700;
+    cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; transition: all 0.2s;
+    background: rgba(255,255,255,0.04); color: var(--muted);
+  }
+  .tab.active { background: var(--orange); color: #fff; }
+  .btn-add {
+    padding: 6px 14px; background: rgba(232,119,34,0.15); color: var(--orange);
+    border: 1px solid rgba(232,119,34,0.25); border-radius: 6px;
+    font-size: 12px; font-weight: 700; cursor: pointer;
+  }
+  .btn-add:hover { background: rgba(232,119,34,0.25); }
+  .btn-remove {
+    padding: 8px 10px; background: rgba(255,60,60,0.1); color: #ff4444;
+    border: 1px solid rgba(255,60,60,0.2); border-radius: 6px;
+    font-size: 12px; cursor: pointer;
+  }
+  .btn-generate {
+    width: 100%; padding: 14px; border: none; border-radius: 10px;
+    font-size: 15px; font-weight: 800; cursor: pointer;
+    text-transform: uppercase; letter-spacing: 1px; color: #fff;
+    background: linear-gradient(135deg, var(--orange), var(--orange-light));
+    box-shadow: 0 4px 15px rgba(232,119,34,0.4); transition: all 0.2s;
+  }
+  .btn-generate:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(232,119,34,0.5); }
+  .btn-generate:disabled { background: #444; box-shadow: none; cursor: not-allowed; transform: none; }
+  .btn-print {
+    padding: 8px 20px; background: rgba(255,255,255,0.08); color: var(--text);
+    border: 1px solid rgba(255,255,255,0.15); border-radius: 8px;
+    font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px;
+  }
+  .btn-print:hover { background: rgba(255,255,255,0.12); }
+  .btn-download {
+    width: 100%; padding: 7px; background: rgba(232,119,34,0.12); color: var(--orange);
+    border: 1px solid rgba(232,119,34,0.2); border-radius: 6px;
+    font-size: 11px; font-weight: 700; cursor: pointer;
+  }
+  .btn-download:hover { background: rgba(232,119,34,0.2); }
+  .asset-row { display: flex; gap: 10px; margin-bottom: 8px; align-items: center; }
+  .results-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+  .card {
+    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px; padding: 16px; display: flex; flex-direction: column; align-items: center; gap: 10px;
+  }
+  .card-img { width: 100%; aspect-ratio: 1; background: #fff; border-radius: 8px; display: flex; align-items: center; justify-content: center; padding: 4px; }
+  .card-img img { width: 100%; height: 100%; object-fit: contain; }
+  .card-name { font-size: 16px; font-weight: 800; color: var(--orange); font-family: "JetBrains Mono", monospace; }
+  .card-data { font-size: 10px; color: #666; margin-top: 2px; word-break: break-all; max-width: 200px; text-align: center; }
+  .info-box {
+    margin-top: 32px; background: rgba(232,119,34,0.06);
+    border: 1px solid rgba(232,119,34,0.12); border-radius: 12px; padding: 20px;
+  }
+  .info-box h3 { font-size: 14px; font-weight: 800; color: var(--orange); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .info-box p { font-size: 13px; color: #b0b0c8; line-height: 1.7; margin-bottom: 8px; }
+  .info-box strong { color: var(--text); }
+  textarea.input { font-family: "JetBrains Mono", "Fira Code", monospace; font-size: 13px; resize: vertical; }
+  .btn-parse {
+    margin-top: 10px; padding: 10px 20px; background: var(--orange); color: #fff;
+    border: none; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer;
+  }
+  .flex-between { display: flex; justify-content: space-between; align-items: center; }
+  .mb-20 { margin-bottom: 20px; }
+  .mb-10 { margin-bottom: 10px; }
+  .mt-28 { margin-top: 28px; }
+  .mb-16 { margin-bottom: 16px; }
+  #bulk-panel, #single-panel, #results-panel { display: none; }
+  #bulk-panel.active, #single-panel.active, #results-panel.active { display: block; }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div class="header-logo">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3300 5120">
+      <defs>
+        <mask id="logo-mask">
+          <rect width="3300" height="5120" fill="white"/>
+          <g transform="translate(0,5120) scale(1,-1)">
+            <path d="M3065 4611 c-126 -273 -253 -547 -282 -608 l-53 -113 -1160 0 -1160 0 0 -495 0 -495 -205 0 -205 0 2 -1452 3 -1453 2 1262 3 1263 822 2 821 3 92 195 c51 107 89 196 85 198 -4 1 -211 4 -461 5 l-454 2 -3 333 -2 332 205 0 205 0 0 -130 0 -130 580 0 c319 0 580 -2 580 -5 0 -2 -57 -125 -126 -272 -70 -147 -196 -416 -281 -598 -85 -181 -156 -331 -158 -333 -1 -1 -338 -2 -748 -2 l-747 -1 0 -719 0 -720 183 95 c100 53 210 110 245 128 l62 31 0 428 0 428 205 0 205 0 0 -550 0 -550 -23 -13 c-12 -8 -74 -41 -137 -74 -63 -33 -346 -181 -629 -329 l-514 -269 1638 -3 c901 -1 1640 -1 1642 1 2 2 2 1151 1 2553 l-3 2550 -230 -495z" fill="black"/>
+            <path d="M0 4503 l0 -208 1236 5 1237 5 79 170 c44 94 86 185 93 203 l14 32 -1330 0 -1329 0 0 -207z" fill="black"/>
+          </g>
+        </mask>
+      </defs>
+      <rect width="3300" height="5120" fill="#000" mask="url(#logo-mask)"/>
+    </svg>
+  </div>
+  <div>
+    <h1>IT Asset QR Generator</h1>
+    <p>Generate QR code labels for Fastrac IT Asset tracking</p>
+  </div>
+</div>
+
+<div class="container">
+  <!-- SF URL -->
+  <div class="mb-20">
+    <label class="label-text">Salesforce Lightning URL</label>
+    <input id="sf-url" class="input" value="https://fastrac.lightning.force.com">
+    <p class="hint">Used to build full record URLs when Record ID is provided</p>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" id="tab-single" onclick="switchTab('single')">Individual Entry</button>
+    <button class="tab" id="tab-bulk" onclick="switchTab('bulk')">Bulk Import (CSV)</button>
+  </div>
+
+  <!-- Single Entry Panel -->
+  <div id="single-panel" class="active mb-20">
+    <div class="flex-between mb-10">
+      <span class="label-text" id="asset-count" style="margin-bottom:0">Assets (1)</span>
+      <button class="btn-add" onclick="addAsset()">+ Add Asset</button>
+    </div>
+    <div id="asset-rows"></div>
+  </div>
+
+  <!-- Bulk Panel -->
+  <div id="bulk-panel" class="mb-20">
+    <label class="label-text">Paste CSV: AssetName,RecordId (one per line)</label>
+    <textarea id="bulk-input" class="input" rows="8" placeholder="F0063,a4aPP000000hCE1YAM&#10;F0064&#10;F0065"></textarea>
+    <button class="btn-parse" onclick="parseBulk()">Parse & Load</button>
+  </div>
+
+  <!-- Generate Button -->
+  <button class="btn-generate" id="btn-gen" onclick="generateQRCodes()">Generate 1 QR Label</button>
+
+  <!-- Results -->
+  <div id="results-panel" class="mt-28">
+    <div class="flex-between mb-16">
+      <h2 style="font-size:16px;font-weight:700" id="results-title">Generated Labels</h2>
+      <button class="btn-print" onclick="printLabels()">🖨️ Print All (2"×2")</button>
+    </div>
+    <div class="results-grid" id="results-grid"></div>
+  </div>
+
+  <!-- Info -->
+  <div class="info-box">
+    <h3>📋 Label Layout</h3>
+    <p>QR code fills the top ~86% with <strong>zero overlay</strong> for maximum scan reliability.</p>
+    <p>Bottom strip: black F logo + asset ID, separated by a thin rule.</p>
+    <p style="margin-bottom:0">Error correction: <strong>Level M (15%)</strong> — no overlay means no wasted redundancy.</p>
+  </div>
+</div>
+
+<script>
+// ===== LOGO PATH DATA (potrace traced, traces background AROUND the F) =====
+const LOGO_PATHS = [
+  "M3065 4611 c-126 -273 -253 -547 -282 -608 l-53 -113 -1160 0 -1160 0 0 -495 0 -495 -205 0 -205 0 2 -1452 3 -1453 2 1262 3 1263 822 2 821 3 92 195 c51 107 89 196 85 198 -4 1 -211 4 -461 5 l-454 2 -3 333 -2 332 205 0 205 0 0 -130 0 -130 580 0 c319 0 580 -2 580 -5 0 -2 -57 -125 -126 -272 -70 -147 -196 -416 -281 -598 -85 -181 -156 -331 -158 -333 -1 -1 -338 -2 -748 -2 l-747 -1 0 -719 0 -720 183 95 c100 53 210 110 245 128 l62 31 0 428 0 428 205 0 205 0 0 -550 0 -550 -23 -13 c-12 -8 -74 -41 -137 -74 -63 -33 -346 -181 -629 -329 l-514 -269 1638 -3 c901 -1 1640 -1 1642 1 2 2 2 1151 1 2553 l-3 2550 -230 -495z",
+  "M0 4503 l0 -208 1236 5 1237 5 79 170 c44 94 86 185 93 203 l14 32 -1330 0 -1329 0 0 -207z"
+];
+
+const QR_DARK = "#1a1a2e";
+
+function drawFLogo(ctx, x, y, w, h, fgColor, bgColor) {
+  ctx.save();
+  ctx.fillStyle = fgColor;
+  ctx.fillRect(x, y, w, h);
+  ctx.translate(x, y + h);
+  ctx.scale(w / 3300, -h / 5120);
+  ctx.fillStyle = bgColor;
+  for (const d of LOGO_PATHS) {
+    ctx.fill(new Path2D(d));
+  }
+  ctx.restore();
+}
+
+// ===== STATE =====
+let assets = [{ name: "F0063", recordId: "" }];
+let generatedCodes = [];
+
+// ===== UI HELPERS =====
+function switchTab(tab) {
+  document.getElementById('tab-single').classList.toggle('active', tab === 'single');
+  document.getElementById('tab-bulk').classList.toggle('active', tab === 'bulk');
+  document.getElementById('single-panel').classList.toggle('active', tab === 'single');
+  document.getElementById('bulk-panel').classList.toggle('active', tab === 'bulk');
+}
+
+function renderAssetRows() {
+  const container = document.getElementById('asset-rows');
+  document.getElementById('asset-count').textContent = `Assets (${assets.length})`;
+  container.innerHTML = assets.map((a, i) => `
+    <div class="asset-row">
+      <input class="input input-asset" style="flex:0 0 130px" value="${a.name}" placeholder="F0063"
+        oninput="assets[${i}].name=this.value.toUpperCase();this.value=this.value.toUpperCase();updateGenBtn()">
+      <input class="input" style="flex:1;font-size:13px" value="${a.recordId}" placeholder="Salesforce Record ID (optional)"
+        oninput="assets[${i}].recordId=this.value">
+      ${assets.length > 1 ? `<button class="btn-remove" onclick="removeAsset(${i})">✕</button>` : ''}
+    </div>
+  `).join('');
+  updateGenBtn();
+}
+
+function addAsset() {
+  assets.push({ name: "", recordId: "" });
+  renderAssetRows();
+}
+
+function removeAsset(i) {
+  if (assets.length > 1) { assets.splice(i, 1); renderAssetRows(); }
+}
+
+function parseBulk() {
+  const text = document.getElementById('bulk-input').value.trim();
+  if (!text) return;
+  assets = text.split('\n').filter(l => l.trim()).map(line => {
+    const p = line.split(',').map(s => s.trim());
+    return { name: p[0] || "", recordId: p[1] || "" };
+  });
+  switchTab('single');
+  renderAssetRows();
+}
+
+function updateGenBtn() {
+  const count = assets.filter(a => a.name).length;
+  document.getElementById('btn-gen').textContent = `Generate ${count} QR Label${count !== 1 ? 's' : ''}`;
+}
+
+// ===== CORE: GENERATE QR CODES =====
+function generateQRCodes() {
+  const sfUrl = document.getElementById('sf-url').value;
+  generatedCodes = [];
+
+  for (const asset of assets) {
+    if (!asset.name) continue;
+    const qrData = asset.recordId ? `${sfUrl}/${asset.recordId}` : asset.name;
+
+    const labelSize = 500;
+    const bottomStripH = 72;
+    const qrAreaH = labelSize - bottomStripH;
+    const qrSize = qrAreaH;
+
+    // QR code
+    const qrCanvas = document.createElement('canvas');
+    qrCanvas.width = qrSize; qrCanvas.height = qrSize;
+    new QRious({ element: qrCanvas, value: qrData, size: qrSize, level: 'M', padding: 10, foreground: QR_DARK, background: '#ffffff' });
+
+    // Compose label
+    const fc = document.createElement('canvas');
+    fc.width = labelSize; fc.height = labelSize;
+    const ctx = fc.getContext('2d');
+
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, labelSize, labelSize);
+    ctx.drawImage(qrCanvas, (labelSize - qrSize) / 2, 0);
+
+    // Bottom strip
+    const stripY = qrAreaH;
+    ctx.fillStyle = QR_DARK;
+    ctx.fillRect(16, stripY, labelSize - 32, 1.5);
+
+    const logoPad = 8;
+    const logoH = bottomStripH - logoPad * 2;
+    const logoW = Math.round(logoH * (3300 / 5120));
+    const fontSize = Math.round(bottomStripH * 0.40);
+    ctx.font = `800 ${fontSize}px "SF Pro Display", "Helvetica Neue", Arial, sans-serif`;
+    const textW = ctx.measureText(asset.name).width;
+    const gap = 12;
+    const totalW = logoW + gap + textW;
+    const startX = (labelSize - totalW) / 2;
+    const logoY = stripY + logoPad + 2;
+
+    drawFLogo(ctx, startX, logoY, logoW, logoH, '#000000', '#ffffff');
+
+    ctx.font = `800 ${fontSize}px "SF Pro Display", "Helvetica Neue", Arial, sans-serif`;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = QR_DARK;
+    ctx.fillText(asset.name, startX + logoW + gap, stripY + bottomStripH / 2 + 2);
+
+    generatedCodes.push({ name: asset.name, dataUrl: fc.toDataURL('image/png'), qrData });
+  }
+
+  renderResults();
+}
+
+// ===== RENDER RESULTS =====
+function renderResults() {
+  const panel = document.getElementById('results-panel');
+  const grid = document.getElementById('results-grid');
+  const title = document.getElementById('results-title');
+
+  if (generatedCodes.length === 0) { panel.classList.remove('active'); return; }
+
+  panel.classList.add('active');
+  title.textContent = `Generated Labels (${generatedCodes.length})`;
+
+  grid.innerHTML = generatedCodes.map((c, i) => `
+    <div class="card">
+      <div class="card-img"><img src="${c.dataUrl}" alt="${c.name}"></div>
+      <div>
+        <div class="card-name">${c.name}</div>
+        <div class="card-data">${c.qrData.length > 55 ? c.qrData.slice(0, 55) + '...' : c.qrData}</div>
+      </div>
+      <button class="btn-download" onclick="downloadLabel(${i})">⬇ Download PNG</button>
+    </div>
+  `).join('');
+}
+
+// ===== DOWNLOAD =====
+function downloadLabel(i) {
+  const c = generatedCodes[i];
+  const a = document.createElement('a');
+  a.href = c.dataUrl;
+  a.download = `fastrac-${c.name}-qr.png`;
+  a.click();
+}
+
+// ===== PRINT =====
+function printLabels() {
+  const pw = window.open('', '_blank');
+  if (!pw) return;
+  const h = generatedCodes.map(c => `<div class="label"><img src="${c.dataUrl}"></div>`).join('');
+  pw.document.write(`<!DOCTYPE html><html><head><title>Fastrac Labels</title>
+<style>@page{size:2in 2in;margin:0}*{margin:0;padding:0;box-sizing:border-box}
+.label{width:2in;height:2in;display:flex;align-items:center;justify-content:center;page-break-after:always;padding:0.04in}
+.label img{width:100%;height:100%;object-fit:contain}</style></head><body>${h}</body></html>`);
+  pw.document.close();
+  setTimeout(() => pw.print(), 500);
+}
+
+// ===== INIT =====
+renderAssetRows();
+</script>
+</body>
+</html>
